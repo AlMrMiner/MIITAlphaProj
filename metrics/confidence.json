@@ -1,0 +1,18 @@
+{
+  "canonical_name": 0.9950098825524627,
+  "invalid_code_by_name": 0.99569250862485,
+  "station_name_by_code": 0.9957412469503408,
+  "route_swap_code": 0.9957021467785792,
+  "route_swap_name": 0.9957021467785792,
+  "kg_to_t": 0.9952738639360976,
+  "wagon_by_cargo": 0.9798826196774711,
+  "cargo_code_by_name": 0.9969189350114722,
+  "client_inn_by_name": 0.9972279660244,
+  "contract_by_sender": 0.994014722635616,
+  "client_name_format": 0.9953256199248128,
+  "station_code_context": 0.996888993697653,
+  "cargo_name_by_code": 0.9545488205535154,
+  "invalid_code_fuzzy": 0.9272997032640948,
+  "name_from_fuzzy": 0.9761156317768539,
+  "code_fuzzy": 0.9647046717431569
+}

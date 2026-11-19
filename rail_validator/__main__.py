@@ -5,9 +5,27 @@ from .data import read_applications
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['inspect'])
+    parser.add_argument('command', choices=['inspect','evaluate','process','resolve'])
     parser.add_argument('input')
+    parser.add_argument('--output', default='output')
+    parser.add_argument('--confidence', default='output/confidence.json')
+    parser.add_argument('--method', choices=['baseline','g3'], default='g3')
+    parser.add_argument('--split', choices=['train','test','all','holdout'], default='test')
+    parser.add_argument('--decisions')
     args = parser.parse_args()
+    if args.command == 'resolve':
+        from .process import resolve
+        if not args.decisions: parser.error('resolve requires --decisions')
+        resolve(args.input,args.decisions,args.output)
+        return
+    if args.command == 'evaluate':
+        from .evaluate import run_evaluation
+        print(json.dumps(run_evaluation(args.input,args.output),ensure_ascii=False,indent=2))
+        return
+    if args.command == 'process':
+        from .process import run_processing
+        run_processing(args.input,args.output,args.confidence,args.method,args.split)
+        return
     splits, channels, blanks, ids = Counter(), Counter(), Counter(), Counter()
     for row in read_applications(args.input):
         splits[row['split']] += 1

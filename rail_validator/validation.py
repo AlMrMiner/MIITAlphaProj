@@ -2,7 +2,7 @@
 Не исправляют исходные данные и не считаются полным baseline.
 """
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 import re
 
@@ -15,7 +15,10 @@ class Issue:
 
 
 def parse_date(value):
-    for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y'):
+    value = value.strip()
+    if value.isdigit() and 20000 <= int(value) <= 80000:
+        return datetime(1899,12,30).date() + timedelta(days=int(value))
+    for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d.%m.%y', '%d/%m/%Y'):
         try:
             return datetime.strptime(value.strip(), fmt).date()
         except ValueError:
@@ -29,6 +32,15 @@ def inn_valid(value):
     return sum(int(n)*w for n,w in zip(value, (2,4,10,3,5,9,4,6,8))) % 11 % 10 == int(value[-1])
 
 
+def station_valid(value):
+    if not re.fullmatch(r'[0-9]{6}', value):
+        return False
+    check = sum(int(n)*w for n,w in zip(value, (1,2,3,4,5))) % 11
+    if check == 10:
+        check = sum(int(n)*w for n,w in zip(value, (3,4,5,6,7))) % 11
+    return (0 if check == 10 else check) == int(value[-1])
+
+
 def local_checks(row):
     issues = []
     def add(field, reason, candidate=None):
@@ -40,8 +52,8 @@ def local_checks(row):
         if not inn_valid(row[field].strip()):
             add(field,'Некорректный формат или контрольная сумма ИНН')
     for field in ('departure_station_code','destination_station_code'):
-        if not re.fullmatch(r'[0-9]{6}',row[field].strip()):
-            add(field,'Код станции должен содержать 6 цифр')
+        if not station_valid(row[field].strip()):
+            add(field,'Некорректный код или контрольная цифра станции')
     try:
         created = datetime.fromisoformat(row['created_at']).date()
     except ValueError:

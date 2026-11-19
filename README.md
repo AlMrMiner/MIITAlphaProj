@@ -19,6 +19,14 @@ python -m rail_validator evaluate data --output output/eval
 python -m rail_validator process data --split holdout --confidence output/eval/confidence.json --output output/demo
 ```
 
+Для демонстрации без повторного расчёта метрик можно использовать сохранённую калибровку из `metrics/`:
+
+```sh
+python -m rail_validator process data --split holdout --confidence metrics/confidence.json --output output/demo
+```
+
+В `metrics/` находятся агрегированные результаты оценки, таблица по типам ошибок и калибровка правил. Полная выгрузка заявок и журнал формируются локально. Оценка полного набора может занимать несколько минут.
+
 На Windows при отсутствии команды `python` используйте `py -3`. Откройте `output/demo/queue.html` в браузере. Сеть для этого не нужна. `ready.csv` — заявки без поставленных в очередь полей (не гарантия абсолютной корректности), `pending.csv` — частично обработанные, ожидают оператора. `audit.csv` — журнал автоматических и ручных рекомендаций.
 
 Чтобы сравнить выгрузку baseline:

@@ -1,6 +1,7 @@
 /data/
 /output/
 *.csv
+!/metrics/per_type.csv
 *.xlsx
 __pycache__/
 .venv/

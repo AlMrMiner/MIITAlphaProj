@@ -1,0 +1,82 @@
+{
+  "canonical_name": {
+    "correct": 766,
+    "total": 766,
+    "lower_bound": 0.9950098825524627
+  },
+  "cargo_code_by_name": {
+    "correct": 1243,
+    "total": 1243,
+    "lower_bound": 0.9969189350114722
+  },
+  "cargo_name_by_code": {
+    "correct": 1295,
+    "total": 1341,
+    "lower_bound": 0.9545488205535154
+  },
+  "client_inn_by_name": {
+    "correct": 1382,
+    "total": 1382,
+    "lower_bound": 0.9972279660244
+  },
+  "client_name_format": {
+    "correct": 818,
+    "total": 818,
+    "lower_bound": 0.9953256199248128
+  },
+  "code_fuzzy": {
+    "correct": 105,
+    "total": 105,
+    "lower_bound": 0.9647046717431569
+  },
+  "contract_by_sender": {
+    "correct": 638,
+    "total": 638,
+    "lower_bound": 0.994014722635616
+  },
+  "invalid_code_by_name": {
+    "correct": 888,
+    "total": 888,
+    "lower_bound": 0.99569250862485
+  },
+  "invalid_code_fuzzy": {
+    "correct": 49,
+    "total": 49,
+    "lower_bound": 0.9272997032640948
+  },
+  "kg_to_t": {
+    "correct": 809,
+    "total": 809,
+    "lower_bound": 0.9952738639360976
+  },
+  "name_from_fuzzy": {
+    "correct": 157,
+    "total": 157,
+    "lower_bound": 0.9761156317768539
+  },
+  "route_swap_code": {
+    "correct": 890,
+    "total": 890,
+    "lower_bound": 0.9957021467785792
+  },
+  "route_swap_name": {
+    "correct": 890,
+    "total": 890,
+    "lower_bound": 0.9957021467785792
+  },
+  "station_code_context": {
+    "correct": 1231,
+    "total": 1231,
+    "lower_bound": 0.996888993697653
+  },
+  "station_name_by_code": {
+    "correct": 2064,
+    "total": 2067,
+    "lower_bound": 0.9957412469503408
+  },
+  "wagon_by_cargo": {
+    "correct": 1025,
+    "total": 1037,
+    "lower_bound": 0.9798826196774711
+  }
+}

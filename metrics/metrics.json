@@ -1,0 +1,48 @@
+{
+  "seed": 42,
+  "fit_applications": 72155,
+  "holdout_applications": 18039,
+  "methods": {
+    "baseline": {
+      "correct": 360,
+      "incorrect": 0,
+      "review": 3173,
+      "missed": 541,
+      "true_fields": 4040,
+      "predicted_fields": 4229,
+      "tp": 3499,
+      "erroneous_input_applications": 2789,
+      "queue_applications": 2459,
+      "residual_error_applications": 2586,
+      "clean_without_review": 15453,
+      "auto_fields": 360,
+      "auto_correct_fields": 360,
+      "precision": 0.8273823598959565,
+      "recall": 0.8660891089108911,
+      "auto_precision": 1.0,
+      "residual_rate": 0.1433560618659571,
+      "clean_without_review_rate": 0.8566439381340429
+    },
+    "g3": {
+      "correct": 3476,
+      "incorrect": 20,
+      "review": 489,
+      "missed": 89,
+      "true_fields": 4040,
+      "predicted_fields": 3986,
+      "tp": 3951,
+      "erroneous_input_applications": 2789,
+      "queue_applications": 484,
+      "residual_error_applications": 547,
+      "clean_without_review": 17471,
+      "auto_fields": 3481,
+      "auto_correct_fields": 3451,
+      "false_auto_fields": 11,
+      "precision": 0.9912192674360261,
+      "recall": 0.977970297029703,
+      "auto_precision": 0.9913817868428613,
+      "residual_rate": 0.03032318864682078,
+      "clean_without_review_rate": 0.9685126669992793
+    }
+  }
+}

@@ -20,7 +20,7 @@ def render_queue(path,queue,summary):
         if key=='confidence':
             return '—' if not row.get('candidate') else f'{row[key]:.1%}' if row.get(key) is not None else '—'
         value=row.get(key,'')
-        if row.get('field') in ('planned_date','created_at') and key in ('original','candidate'):
+        if row.get('field') in ('planned_date','created_at') and key in ('original','candidate') and isinstance(value, str) and value.strip():
             parsed=parse_date(value)
             if parsed is not None:return parsed.strftime('%d.%m.%Y')
         return value

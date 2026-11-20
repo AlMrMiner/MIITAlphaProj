@@ -5,7 +5,7 @@ from .data import read_applications
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['inspect','evaluate','process','resolve','train-ml'])
+    parser.add_argument('command', choices=['inspect','evaluate','evaluate-ml','process','resolve','train-ml'])
     parser.add_argument('input')
     parser.add_argument('--output', default='output')
     parser.add_argument('--confidence', default='output/confidence.json')
@@ -23,9 +23,9 @@ def main():
         if not args.decisions: parser.error('resolve requires --decisions')
         resolve(args.input,args.decisions,args.output)
         return
-    if args.command == 'evaluate':
+    if args.command in ('evaluate','evaluate-ml'):
         from .evaluate import run_evaluation
-        print(json.dumps(run_evaluation(args.input,args.output),ensure_ascii=False,indent=2))
+        print(json.dumps(run_evaluation(args.input,args.output,args.model if args.command=='evaluate-ml' else None),ensure_ascii=False,indent=2))
         return
     if args.command == 'process':
         from .process import run_processing

@@ -23,7 +23,7 @@ def write_csv(path, rows, fields):
     with open(path,'w',encoding='utf-8-sig',newline='') as f:
         w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
 
-def run_evaluation(data_dir, output_dir):
+def run_evaluation(data_dir, output_dir, model_path=None):
     p=Path(data_dir); out=Path(output_dir); out.mkdir(parents=True,exist_ok=True)
     rows=sorted((r for r in read_applications(p/'applications_raw.csv') if r['split']=='train'),key=lambda r:(r['created_at'],r['app_id']))
     hold=partition(rows)
@@ -48,12 +48,17 @@ def run_evaluation(data_dir, output_dir):
     (out/'calibration.json').write_text(json.dumps(calibration,ensure_ascii=False,indent=2),encoding='utf-8')
     summary={'seed':SEED,'fit_applications':len(rows)-len(hold),'holdout_applications':len(hold),'methods':{}}
     types=[]; examples=[]
-    for name,engine,idx in [('baseline',base,1),('g3',main,2)]:
+    methods=[('baseline',base,1),('g3',main,2)]
+    if model_path:
+        from .ml import load_model, ml_decisions
+        model=load_model(model_path)
+        methods.append(('ml',main,2))
+    for name,engine,idx in methods:
         totals=Counter(); by_type=defaultdict(Counter); queue=[]; audits=[]; metrics=Counter()
         for item in held:
             r=item[0]; truth=labels[r['app_id']]; tf=defaultdict(list)
             for l in truth: tf[l['field']].append(l)
-            decisions=engine.decisions(item[idx]); correct_app=True; introduced=False
+            decisions=ml_decisions(engine,r,item[idx],model) if name=='ml' else engine.decisions(item[idx]); correct_app=True; introduced=False
             metrics['true_fields']+=len(tf); metrics['predicted_fields']+=len(decisions); metrics['tp']+=len(tf.keys() & decisions.keys())
             metrics['erroneous_input_applications']+=bool(truth)
             metrics['queue_applications']+=any(d['action']=='review' for d in decisions.values())

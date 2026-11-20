@@ -31,9 +31,15 @@ def run_processing(data_dir,output_dir,confidence_path,method,split,model_path=N
     rows=sorted((r for r in read_applications(p/'applications_raw.csv') if split=='all' or r['split']==('train' if split=='holdout' else split)),key=lambda r:(r['created_at'],r['app_id']))
     hold=partition(rows) if split=='holdout' else None
     ready=[];pending=[];audit=[];queue=[];counts=Counter()
-    for row in rows:
-        findings=engine.analyze(row)
-        decisions=ml_decisions(engine,row,findings,model) if model is not None else engine.decisions(findings)
+    if model is not None:
+        from .ml import batch_predictions
+        analyzed=[(row,engine.analyze(row)) for row in rows]
+        scores=batch_predictions(analyzed,model)
+    else:
+        analyzed=((row,engine.analyze(row)) for row in rows)
+        scores=None
+    for row,findings in analyzed:
+        decisions=ml_decisions(engine,row,findings,model,scores) if model is not None else engine.decisions(findings)
         if hold is not None and row['app_id'] not in hold: continue
         result=dict(row); counts['processed']+=1
         for field,d in decisions.items():

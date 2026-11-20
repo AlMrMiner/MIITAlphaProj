@@ -63,6 +63,7 @@ def train_model(data_dir, output_dir, limit=None):
         from sklearn.feature_extraction import DictVectorizer
         from sklearn.linear_model import LogisticRegression
         from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import StandardScaler
     except ImportError as error:
         raise RuntimeError('Для ML установите зависимости: pip install -r requirements-ml.txt') from error
 
@@ -97,7 +98,8 @@ def train_model(data_dir, output_dir, limit=None):
         raise ValueError('Нет примеров в калибровочной части')
     pipe = Pipeline([
         ('vectorizer', DictVectorizer(sparse=True)),
-        ('classifier', LogisticRegression(max_iter=500, random_state=SEED)),
+        ('scaler', StandardScaler(with_mean=False)),
+        ('classifier', LogisticRegression(max_iter=1000, random_state=SEED)),
     ])
     pipe.fit(train_x, train_y)
     probs = pipe.predict_proba(calib_x)[:, 1]
@@ -130,13 +132,36 @@ def load_model(path):
     return joblib.load(path)
 
 
-def ml_decisions(engine, row, findings, model):
+def batch_predictions(items, model):
+    """Пакетное предсказание для списка (row, findings); ключ (app_id, field)."""
+    output = {}
+    records, keys = [], []
+    def flush():
+        if not records:
+            return
+        probs = model['pipeline'].predict_proba(records)[:,1]
+        output.update(zip(keys, (float(p) for p in probs)))
+        records.clear()
+        keys.clear()
+    for row, findings in items:
+        for field,f in findings.items():
+            if f.candidate is None or field == 'app_id':
+                continue
+            keys.append((row['app_id'], field))
+            records.append(features(row,f))
+            if len(records) >= 4096:
+                flush()
+    flush()
+    return output
+
+def ml_decisions(engine, row, findings, model, scores=None):
     """Г3 обнаруживает ошибки, ML решает какие кандидаты применить автоматически."""
     decisions = engine.decisions(findings)
     available = [(key,f) for key,f in findings.items() if f.candidate is not None and key != 'app_id']
     if not available:
         return decisions
-    probs = model['pipeline'].predict_proba([features(row, f) for _,f in available])[:,1]
+    probs = ([scores[(row['app_id'], field)] for field,_ in available] if scores is not None
+             else model['pipeline'].predict_proba([features(row, f) for _,f in available])[:,1])
     threshold = model['threshold']
     for (field,_), prob in zip(available, probs):
         score = float(prob)

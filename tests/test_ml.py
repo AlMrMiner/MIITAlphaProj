@@ -1,6 +1,6 @@
 import unittest
 from rail_validator.engine import Finding
-from rail_validator.ml import correct_candidate, features, grouped_calibration_key
+from rail_validator.ml import correct_candidate, features, grouped_calibration_key, ml_decisions, batch_predictions
 from rail_validator.data import FIELDS
 
 class TestML(unittest.TestCase):
@@ -18,6 +18,20 @@ class TestML(unittest.TestCase):
         self.assertEqual(correct_candidate('weight_t','120',labels),1)
         self.assertEqual(correct_candidate('weight_t','110',labels),0)
         self.assertEqual(correct_candidate('cargo_code','123',labels),0)
+    def test_ml_decision_threshold(self):
+        class FakePipe:
+            def predict_proba(self, entries):
+                import numpy as np
+                return np.array([[0.01,0.99] for _ in entries])
+        class FakeEngine:
+            def decisions(self, findings):
+                return {field:{'field':field,'confidence':0.0,'action':'review','candidate':f.candidate}
+                        for field,f in findings.items()}
+        found={'cargo_name':Finding('cargo_name','Ошибка','Нефть','canonical_name')}
+        res=ml_decisions(FakeEngine(),self.row,found,{'pipeline':FakePipe(),'threshold':0.95})
+        self.assertEqual(res['cargo_name']['action'],'auto')
+        self.assertEqual(res['cargo_name']['confidence'],0.99)
+
     def test_calibration_group_deterministic(self):
         self.assertEqual(grouped_calibration_key(self.row),grouped_calibration_key(dict(self.row)))
 

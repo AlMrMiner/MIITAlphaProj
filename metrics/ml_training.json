@@ -1,0 +1,13 @@
+{
+  "seed": 42,
+  "algorithm": "LogisticRegression + DictVectorizer",
+  "training_candidates": 11549,
+  "positive_training_candidates": 11501,
+  "calibration_candidates": 2762,
+  "positive_calibration_candidates": 2749,
+  "probability_threshold": 0.115641,
+  "calibration_auto_count": 2762,
+  "calibration_auto_correct": 2749,
+  "calibration_lower_precision_bound": 0.9919633854217956,
+  "holdout_used_for_training": false
+}

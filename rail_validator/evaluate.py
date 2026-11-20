@@ -50,15 +50,16 @@ def run_evaluation(data_dir, output_dir, model_path=None):
     types=[]; examples=[]
     methods=[('baseline',base,1),('g3',main,2)]
     if model_path:
-        from .ml import load_model, ml_decisions
+        from .ml import load_model, ml_decisions, batch_predictions
         model=load_model(model_path)
+        ml_scores=batch_predictions(((r,b) for r,a,b in held),model)
         methods.append(('ml',main,2))
     for name,engine,idx in methods:
         totals=Counter(); by_type=defaultdict(Counter); queue=[]; audits=[]; metrics=Counter()
         for item in held:
             r=item[0]; truth=labels[r['app_id']]; tf=defaultdict(list)
             for l in truth: tf[l['field']].append(l)
-            decisions=ml_decisions(engine,r,item[idx],model) if name=='ml' else engine.decisions(item[idx]); correct_app=True; introduced=False
+            decisions=ml_decisions(engine,r,item[idx],model,ml_scores) if name=='ml' else engine.decisions(item[idx]); correct_app=True; introduced=False
             metrics['true_fields']+=len(tf); metrics['predicted_fields']+=len(decisions); metrics['tp']+=len(tf.keys() & decisions.keys())
             metrics['erroneous_input_applications']+=bool(truth)
             metrics['queue_applications']+=any(d['action']=='review' for d in decisions.values())

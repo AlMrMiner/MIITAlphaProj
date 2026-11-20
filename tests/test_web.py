@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -83,7 +84,14 @@ class WebWorkspaceTests(unittest.TestCase):
         with mock.patch('threading.Thread') as thread:
             self.ws.new_job('process',{'method':'g3','split':'holdout'})
             argv=thread.call_args.kwargs['args'][1]
-            self.assertEqual(argv[-2:], ['--confidence',str(self.root/'metrics'/'confidence.json')])
-            self.assertIn(str(self.ws.output/'demo-g3-holdout'), argv)
+            self.assertEqual(argv[-2], '--confidence')
+            self.assertTrue(
+                os.path.samefile(argv[-1], self.root / 'metrics' / 'confidence.json'),
+                f'Путь к confidence.json неверен: {argv[-1]}',
+            )
+            self.assertIn('--output', argv)
+            output_path = Path(argv[argv.index('--output') + 1])
+            self.assertEqual(output_path.name, 'demo-g3-holdout')
+            self.assertTrue(os.path.samefile(output_path.parent, self.ws.output))
 
 if __name__ == '__main__':unittest.main()

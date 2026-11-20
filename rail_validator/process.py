@@ -19,15 +19,21 @@ def render_queue(path,queue,summary):
     page='''<!doctype html><html lang="ru"><meta charset="utf-8"><title>Очередь оператора Г3</title><style>body{font:15px system-ui;margin:32px;color:#172b4d;background:#f5f7fb}table{border-collapse:collapse;background:white;width:100%}td,th{padding:10px;text-align:left;border-bottom:1px solid #d9e0ea}th{position:sticky;top:0;background:#e2e9f4}input{padding:10px;width:min(480px,90%);margin:16px 0}td{overflow-wrap:anywhere}p{max-width:900px}</style><h1>Очередь оператора</h1><p>'''+counts+'''</p><p>Откройте operator_decisions.csv для внесения решений: accept (принять кандидат), edit (ввести значение), clear (подтвердить исходное значение), drop (отклонить заявку). Затем запустите команду resolve из README. До заполнения всех строк заявка остаётся в очереди.</p><input id="search" placeholder="Поиск по номеру, полю, причине" oninput="for(const r of document.querySelectorAll('tbody tr'))r.hidden=!r.textContent.toLowerCase().includes(this.value.toLowerCase())"><table><thead><tr>'''+''.join('<th>'+cell(k)+'</th>' for k in cols)+'</tr></thead><tbody>'+body+'</tbody></table></html>'
     path.write_text(page,encoding='utf-8')
 
-def run_processing(data_dir,output_dir,confidence_path,method,split):
+def run_processing(data_dir,output_dir,confidence_path,method,split,model_path=None):
     p=Path(data_dir);out=Path(output_dir);out.mkdir(parents=True,exist_ok=True)
-    engine=Engine(References(p),method=='g3')
+    engine=Engine(References(p),method in ('g3','ml'))
+    model=None
+    if method=='ml':
+        from .ml import load_model, ml_decisions
+        if not model_path: raise ValueError('Для ML требуется путь к сохранённой модели')
+        model=load_model(model_path)
     if method=='g3': engine.confidence=json.loads(Path(confidence_path).read_text(encoding='utf-8'))
     rows=sorted((r for r in read_applications(p/'applications_raw.csv') if split=='all' or r['split']==('train' if split=='holdout' else split)),key=lambda r:(r['created_at'],r['app_id']))
     hold=partition(rows) if split=='holdout' else None
     ready=[];pending=[];audit=[];queue=[];counts=Counter()
     for row in rows:
-        decisions=engine.decisions(engine.analyze(row))
+        findings=engine.analyze(row)
+        decisions=ml_decisions(engine,row,findings,model) if model is not None else engine.decisions(findings)
         if hold is not None and row['app_id'] not in hold: continue
         result=dict(row); counts['processed']+=1
         for field,d in decisions.items():

@@ -5,14 +5,19 @@ from .data import read_applications
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['inspect','evaluate','process','resolve'])
+    parser.add_argument('command', choices=['inspect','evaluate','process','resolve','train-ml'])
     parser.add_argument('input')
     parser.add_argument('--output', default='output')
     parser.add_argument('--confidence', default='output/confidence.json')
-    parser.add_argument('--method', choices=['baseline','g3'], default='g3')
+    parser.add_argument('--method', choices=['baseline','g3','ml'], default='g3')
     parser.add_argument('--split', choices=['train','test','all','holdout'], default='test')
     parser.add_argument('--decisions')
+    parser.add_argument('--model', default='output/ml/model.joblib')
     args = parser.parse_args()
+    if args.command == 'train-ml':
+        from .ml import train_model
+        print(json.dumps(train_model(args.input,args.output),ensure_ascii=False,indent=2))
+        return
     if args.command == 'resolve':
         from .process import resolve
         if not args.decisions: parser.error('resolve requires --decisions')
@@ -24,7 +29,7 @@ def main():
         return
     if args.command == 'process':
         from .process import run_processing
-        run_processing(args.input,args.output,args.confidence,args.method,args.split)
+        run_processing(args.input,args.output,args.confidence,args.method,args.split,args.model)
         return
     splits, channels, blanks, ids = Counter(), Counter(), Counter(), Counter()
     for row in read_applications(args.input):

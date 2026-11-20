@@ -5,7 +5,7 @@ from .data import read_applications
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['inspect','evaluate','evaluate-ml','process','resolve','train-ml'])
+    parser.add_argument('command', choices=['inspect','evaluate','evaluate-ml','process','resolve','train-ml','serve'])
     parser.add_argument('input')
     parser.add_argument('--output', default='output')
     parser.add_argument('--confidence', default='output/confidence.json')
@@ -14,6 +14,10 @@ def main():
     parser.add_argument('--decisions')
     parser.add_argument('--model', default='output/ml/model.joblib')
     args = parser.parse_args()
+    if args.command == 'serve':
+        from .web import serve
+        serve(args.input)
+        return
     if args.command == 'train-ml':
         from .ml import train_model
         print(json.dumps(train_model(args.input,args.output),ensure_ascii=False,indent=2))

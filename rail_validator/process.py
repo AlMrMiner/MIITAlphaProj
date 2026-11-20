@@ -6,15 +6,25 @@ from collections import defaultdict, Counter
 from .data import FIELDS, read_applications
 from .reference import References, read_table
 from .engine import Engine
+from .validation import parse_date
 from .evaluate import partition, write_csv
 
 AUDIT_FIELDS=['app_id','field','original','candidate','reason','rule','confidence','action']
 REVIEW_FIELDS=[*AUDIT_FIELDS,'operator_action','operator_value']
+TICKET_EDIT_FIELDS=['app_id','field','value']
 
 def render_queue(path,queue,summary):
     cols=['app_id','field','original','candidate','reason','confidence']
     def cell(value): return escape(str(value if value is not None else ''))
-    body=''.join('<tr>'+''.join('<td>'+cell(('—' if r.get('candidate') in (None, '') else f'{r[k]:.1%}' if r.get(k) is not None else '—') if k=='confidence' else r[k])+'</td>' for k in cols)+'</tr>' for r in queue)
+    def display(row,key):
+        if key=='confidence':
+            return '—' if not row.get('candidate') else f'{row[key]:.1%}' if row.get(key) is not None else '—'
+        value=row.get(key,'')
+        if row.get('field') in ('planned_date','created_at') and key in ('original','candidate'):
+            parsed=parse_date(value)
+            if parsed is not None:return parsed.strftime('%d.%m.%Y')
+        return value
+    body=''.join('<tr>'+''.join('<td>'+cell(display(r,k))+'</td>' for k in cols)+'</tr>' for r in queue)
     counts=' · '.join(f'{cell(k)}: {cell(v)}' for k,v in summary.items())
     page='''<!doctype html><html lang="ru"><meta charset="utf-8"><title>Очередь оператора Г3</title><style>body{font:15px system-ui;margin:32px;color:#172b4d;background:#f5f7fb}table{border-collapse:collapse;background:white;width:100%}td,th{padding:10px;text-align:left;border-bottom:1px solid #d9e0ea}th{position:sticky;top:0;background:#e2e9f4}input{padding:10px;width:min(480px,90%);margin:16px 0}td{overflow-wrap:anywhere}p{max-width:900px}</style><h1>Очередь оператора</h1><p>'''+counts+'''</p><p>Откройте operator_decisions.csv для внесения решений: accept (принять кандидат), edit (ввести значение), clear (подтвердить исходное значение), drop (отклонить заявку). Затем запустите команду resolve из README. До заполнения всех строк заявка остаётся в очереди.</p><input id="search" placeholder="Поиск по номеру, полю, причине" oninput="for(const r of document.querySelectorAll('tbody tr'))r.hidden=!r.textContent.toLowerCase().includes(this.value.toLowerCase())"><table><thead><tr>'''+''.join('<th>'+cell(k)+'</th>' for k in cols)+'</tr></thead><tbody>'+body+'</tbody></table></html>'
     path.write_text(page,encoding='utf-8')
@@ -46,6 +56,8 @@ def run_processing(data_dir,output_dir,confidence_path,method,split,model_path=N
             entry={'app_id':row['app_id'],'original':row[field],**d};audit.append(entry)
             if d['action']=='auto': result[field]=d['candidate'];counts['auto_fields']+=1
             else: queue.append(entry)
+        normalized = parse_date(result['planned_date'])
+        if normalized is not None:result['planned_date']=normalized.isoformat()
         if any(d['action']=='review' for d in decisions.values()):pending.append(result)
         else:ready.append(result)
     counts.update({'ready':len(ready),'pending':len(pending),'review_fields':len(queue)})
@@ -68,6 +80,14 @@ def resolve(directory, decision_path, output_dir):
     approved=list(read_applications(p/'ready.csv')); pending=[]; rejected=[]; log=[]
     by_id=defaultdict(list)
     for key,q in original.items():by_id[key[0]].append((key,q))
+    extra_edits=defaultdict(dict)
+    edit_file=p/'ticket_edits.csv'
+    if edit_file.exists():
+        for edit in read_table(edit_file):
+            if edit['field'] not in FIELDS or edit['field'] in ('app_id','split'):
+                raise ValueError('Недопустимое поле в ticket_edits.csv')
+            if not edit['value'].strip():raise ValueError('Пустое значение в ticket_edits.csv')
+            extra_edits[edit['app_id']][edit['field']]=edit['value']
     for row in read_applications(p/'pending.csv'):
         result=dict(row); unresolved=False; drop=False; local=[]
         for key,q in by_id[row['app_id']]:
@@ -82,9 +102,17 @@ def resolve(directory, decision_path, output_dir):
                 result[field]=value
             elif action=='clear':pass
             if action:local.append({'app_id':key[0],'field':field,'action':action,'value':result[field]})
+        if not drop:
+            for field,value in extra_edits.get(row['app_id'],{}).items():
+                if (row['app_id'],field) in original:raise ValueError('Конфликт редактирования поля')
+                result[field]=value
+                local.append({'app_id':row['app_id'],'field':field,'action':'edit','value':value})
         if drop:rejected.append(row);log.extend(local)
         elif unresolved:pending.append(row)
-        else:approved.append(result);log.extend(local)
+        else:
+            normalized = parse_date(result['planned_date'])
+            if normalized is not None:result['planned_date']=normalized.isoformat()
+            approved.append(result);log.extend(local)
     write_csv(out/'approved.csv',approved,FIELDS);write_csv(out/'pending.csv',pending,FIELDS);write_csv(out/'rejected.csv',rejected,FIELDS)
     write_csv(out/'operator_audit.csv',log,['app_id','field','action','value'])
     print(json.dumps({'approved':len(approved),'pending':len(pending),'rejected':len(rejected)},ensure_ascii=False))

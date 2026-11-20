@@ -37,6 +37,38 @@ class WebWorkspaceTests(unittest.TestCase):
         self.assertEqual(q['rows'][0]['operator_action'],'edit')
         self.assertEqual(q['rows'][0]['operator_value'],'2025-01-01')
 
+    def test_ticket_displays_standard_date(self):
+        from rail_validator.data import FIELDS
+        record={f:'x' for f in FIELDS}
+        record.update(app_id='Z0001',planned_date='45672',created_at='2025-01-03T10:00:00')
+        with (self.source/'pending.csv').open('w',encoding='utf-8',newline='') as f:
+            writer=csv.DictWriter(f,fieldnames=FIELDS);writer.writeheader();writer.writerow(record)
+        t=self.ws.ticket('demo-g3-holdout','Z0001')
+        d={f['name']:f for f in t['fields']}
+        from rail_validator.validation import parse_date
+        self.assertEqual(d['planned_date']['display'],parse_date('45672').strftime('%d.%m.%Y'))
+        self.assertEqual(d['created_at']['display'],'03.01.2025 10:00')
+        self.ws.save_ticket_field('demo-g3-holdout','Z0001','planned_date','25.01.2025')
+        self.assertEqual(self.ws.queue('demo-g3-holdout')['rows'][0]['operator_value'],'2025-01-25')
+
+    def test_ticket_changes_nonflagged_field_in_resolve(self):
+        from rail_validator.data import FIELDS
+        from rail_validator.process import resolve
+        record={f:'x' for f in FIELDS}
+        record.update(app_id='Z0001',planned_date='2024-12-01',cargo_name='Старый груз')
+        for filename,rows in [('pending.csv',[record]),('ready.csv',[])]:
+            with (self.source/filename).open('w',encoding='utf-8',newline='') as f:
+                writer=csv.DictWriter(f,fieldnames=FIELDS);writer.writeheader();writer.writerows(rows)
+        self.ws.save_ticket_field('demo-g3-holdout','Z0001','cargo_name','Новый груз')
+        self.ws.save_decision('demo-g3-holdout','Z0001','planned_date','edit','2025-01-25')
+        resolve(self.source,self.source/'operator_decisions.csv',self.ws.output/'resolved-test')
+        with (self.ws.output/'resolved-test'/'approved.csv').open(encoding='utf-8',newline='') as f:
+            rows=list(csv.DictReader(f))
+        self.assertEqual(rows[0]['cargo_name'],'Новый груз')
+        self.assertEqual(rows[0]['planned_date'],'2025-01-25')
+        with (self.ws.output/'resolved-test'/'operator_audit.csv').open(encoding='utf-8',newline='') as f:
+            self.assertEqual(len(list(csv.DictReader(f))),2)
+
     def test_cannot_accept_missing_candidate(self):
         with self.assertRaisesRegex(ValueError, 'отсутствует'):
             self.ws.save_decision('demo-g3-holdout','Z0001','planned_date','accept','')

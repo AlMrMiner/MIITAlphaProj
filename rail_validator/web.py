@@ -83,7 +83,7 @@ class Workspace:
 
     def _run(self, number, argv):
         try:
-            process = subprocess.run(argv, cwd=self.root, capture_output=True, text=True,
+            process = subprocess.run(argv, cwd=Path(__file__).resolve().parent.parent, capture_output=True, text=True,
                                      encoding='utf-8', errors='replace', timeout=1200)
             output = (process.stdout + '\n' + process.stderr).strip()[-50000:]
             status = 'completed' if process.returncode == 0 else 'failed'

@@ -21,6 +21,14 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(e.decisions(f)['cargo_name']['action'],'auto')
         self.assertLess(wilson(1,1),.95)
         self.assertGreater(wilson(100,100),.95)
+    def test_no_candidate_has_no_confidence(self):
+        engine=Engine(None,True)
+        engine.confidence={'kg_to_t':.995}
+        findings={'weight_t':Finding('weight_t','Масса превышает грузоподъёмность',None,'kg_to_t')}
+        decision=engine.decisions(findings)['weight_t']
+        self.assertIsNone(decision['confidence'])
+        self.assertEqual(decision['action'],'review')
+
     def test_group_partition(self):
         rows=[dict(app_id=str(i),split='train',created_at=str(i),channel='API',planned_date='2025-01-01',cargo_name=str(i//2)) for i in range(20)]
         hold=partition(rows)

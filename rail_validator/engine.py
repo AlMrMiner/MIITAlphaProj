@@ -115,9 +115,9 @@ class Engine:
     def decisions(self,findings):
         result={}
         for field,f in findings.items():
-            score=self.confidence.get(f.rule,0.0) if self.advanced else (1.0 if f.rule in ('canonical_name','client_name_format') else 0.0)
+            score=(self.confidence.get(f.rule,0.0) if self.advanced else (1.0 if f.rule in ('canonical_name','client_name_format') else 0.0)) if f.candidate is not None else None
             # Baseline exact formatting only; Г3 uses empirical lower confidence bound.
-            action='auto' if f.candidate is not None and score>=.95 and field!='app_id' else 'review'
+            action='auto' if score is not None and score>=.95 and field!='app_id' else 'review'
             result[field]={'field':field,'reason':f.reason,'candidate':f.candidate,'rule':f.rule,'confidence':score,'action':action}
         return result
 
